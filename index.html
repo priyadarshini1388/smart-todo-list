@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart To-Do</title>
+<style>
+:root{
+  --bg1:#eef1ff; --bg2:#f9ecff; --card:rgba(255,255,255,.78); --card-solid:#fff;
+  --text:#1c1f33; --muted:#6b7090; --line:rgba(30,35,80,.09);
+  --brand:#6c5ce7; --brand2:#a66cff; --ok:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+  --high:#ef4444; --medium:#f59e0b; --low:#22c55e;
+  --shadow:0 10px 30px rgba(60,50,140,.10); --radius:18px;
+}
+[data-theme="dark"]{
+  --bg1:#12132a; --bg2:#1d1238; --card:rgba(32,34,64,.72); --card-solid:#23254a;
+  --text:#eceeff; --muted:#9a9fc8; --line:rgba(255,255,255,.08);
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text);
+  background:linear-gradient(135deg,var(--bg1),var(--bg2)) fixed;min-height:100vh;
+  transition:background .3s,color .3s;
+}
+body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(80px);opacity:.45}
+body::before{width:380px;height:380px;background:#8f7bff;top:-120px;left:-100px}
+body::after{width:340px;height:340px;background:#ff8fd0;bottom:-120px;right:-80px}
+button,input,select,textarea{font:inherit;color:inherit}
+.app{max-width:1080px;margin:0 auto;padding:28px 18px 80px}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo i{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-style:normal;font-size:22px;color:#fff;
+  background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 8px 20px rgba(108,92,231,.4)}
+.logo h1{font-size:22px;margin:0;letter-spacing:-.3px}
+.logo small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.icon-btn{border:1px solid var(--line);background:var(--card);backdrop-filter:blur(10px);width:42px;height:42px;border-radius:13px;cursor:pointer;font-size:18px;transition:.2s}
+.icon-btn:hover{transform:translateY(-2px)}
+
+.grid{display:grid;grid-template-columns:290px 1fr;gap:20px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+/* sidebar */
+aside .card{padding:20px;margin-bottom:18px}
+.ring-wrap{display:flex;align-items:center;gap:16px}
+.ring{position:relative;width:96px;height:96px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:9;stroke-linecap:round}
+.ring .bg{stroke:var(--line)}
+.ring .fg{stroke:url(#g);transition:stroke-dashoffset .7s cubic-bezier(.3,.8,.3,1)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:20px}
+.ring-wrap h3{margin:0 0 4px;font-size:16px}
+.ring-wrap p{margin:0;color:var(--muted);font-size:13px;line-height:1.4}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.stat{padding:12px;border-radius:14px;background:var(--card-solid);border:1px solid var(--line)}
+.stat b{font-size:22px;display:block}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.bad b{color:var(--bad)} .stat.warn b{color:var(--warn)} .stat.ok b{color:var(--ok)}
+.side-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 10px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{display:flex;align-items:center;justify-content:space-between;gap:8px;background:none;border:0;padding:10px 12px;border-radius:12px;cursor:pointer;text-align:left;font-weight:500;transition:.15s}
+.nav button:hover{background:var(--line)}
+.nav button.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 6px 16px rgba(108,92,231,.35)}
+.nav .n{font-size:12px;opacity:.75;background:var(--line);padding:2px 8px;border-radius:99px}
+.nav button.active .n{background:rgba(255,255,255,.25)}
+
+/* main */
+.quick{padding:16px;margin-bottom:16px}
+.quick-row{display:flex;gap:10px}
+.quick input{flex:1;min-width:0;padding:14px 16px;border-radius:14px;border:1.5px solid var(--line);background:var(--card-solid);outline:none;font-size:15px;transition:.2s}
+.quick input:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(108,92,231,.15)}
+.btn{border:0;cursor:pointer;padding:0 20px;border-radius:14px;font-weight:600;transition:.2s;white-space:nowrap}
+.btn.primary{color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 8px 20px rgba(108,92,231,.35)}
+.btn.primary:hover{transform:translateY(-2px)}
+.btn.ghost{background:var(--card-solid);border:1px solid var(--line);height:46px}
+.hint{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);min-height:26px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;background:var(--line);color:var(--text)}
+.chip.high{background:rgba(239,68,68,.14);color:var(--high)} .chip.medium{background:rgba(245,158,11,.16);color:#c27c04}
+.chip.low{background:rgba(34,197,94,.15);color:var(--ok)} .chip.cat{background:rgba(108,92,231,.14);color:var(--brand)}
+.chip.date{background:rgba(59,130,246,.14);color:#3b82f6} .chip.late{background:rgba(239,68,68,.14);color:var(--bad)}
+.chip.soon{background:rgba(245,158,11,.16);color:#c27c04}
+
+.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.toolbar .search{flex:1;min-width:180px;position:relative}
+.toolbar input,.toolbar select{width:100%;padding:11px 14px;border-radius:13px;border:1px solid var(--line);background:var(--card);backdrop-filter:blur(10px);outline:none}
+.toolbar input{padding-left:38px} .toolbar .search::before{content:"🔍";position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px}
+.toolbar select{width:auto;cursor:pointer}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--brand)}
+
+.list{display:flex;flex-direction:column;gap:10px}
+.task{display:flex;gap:14px;padding:16px;border-radius:16px;background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--line);border-left:5px solid var(--medium);box-shadow:var(--shadow);animation:in .3s ease both;transition:.2s}
+.task:hover{transform:translateY(-2px)}
+.task.p-high{border-left-color:var(--high)} .task.p-low{border-left-color:var(--low)}
+.task.done{opacity:.6} .task.done .title{text-decoration:line-through;color:var(--muted)}
+@keyframes in{from{opacity:0;transform:translateY(10px)}}
+.check{flex:none;width:26px;height:26px;margin-top:1px;border-radius:50%;border:2px solid var(--muted);background:none;cursor:pointer;display:grid;place-items:center;color:transparent;transition:.2s;font-size:14px;font-weight:800}
+.check:hover{border-color:var(--brand);transform:scale(1.1)}
+.task.done .check{background:var(--ok);border-color:var(--ok);color:#fff}
+.body{flex:1;min-width:0}
+.title{font-weight:600;font-size:16px;word-break:break-word}
+.desc{color:var(--muted);font-size:13.5px;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.actions{display:flex;gap:4px;opacity:0;transition:.2s}
+.task:hover .actions,.task:focus-within .actions{opacity:1}
+@media(hover:none){.actions{opacity:1}}
+.actions button{border:0;background:none;cursor:pointer;width:34px;height:34px;border-radius:10px;font-size:15px}
+.actions button:hover{background:var(--line)}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .big{font-size:54px;margin-bottom:8px}
+.banner{display:none;margin-bottom:14px;padding:12px 16px;border-radius:14px;background:rgba(239,68,68,.12);color:var(--bad);border:1px solid rgba(239,68,68,.3);font-size:14px}
+.banner.show{display:block}
+.footer-row{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--muted);font-size:13px}
+.link{background:none;border:0;color:var(--brand);cursor:pointer;font-weight:600}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(15,16,40,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+.overlay.show{display:flex}
+.modal{width:100%;max-width:480px;background:var(--card-solid);border-radius:22px;padding:24px;box-shadow:0 30px 70px rgba(0,0,0,.35);animation:in .25s ease both;max-height:92vh;overflow:auto}
+.modal h2{margin:0 0 16px;font-size:19px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.field input,.field textarea{width:100%;padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:transparent;outline:none}
+.field input:focus,.field textarea:focus{border-color:var(--brand)}
+.field textarea{resize:vertical;min-height:80px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:flex;background:var(--line);padding:4px;border-radius:12px;gap:4px}
+.seg button{flex:1;border:0;background:none;padding:8px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px;text-transform:capitalize}
+.seg button.on{background:var(--card-solid);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.seg button.on[data-v="high"]{color:var(--high)} .seg button.on[data-v="medium"]{color:#c27c04} .seg button.on[data-v="low"]{color:var(--ok)}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.modal-actions .btn{height:44px}
+.err{color:var(--bad);font-size:13px;min-height:18px;margin-top:6px}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,30px);background:#23254a;color:#fff;padding:12px 18px;border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.35);display:flex;gap:14px;align-items:center;opacity:0;pointer-events:none;transition:.3s;z-index:60;font-size:14px}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{background:none;border:0;color:#b9a8ff;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><i>✓</i><div><h1>Smart To-Do</h1><small id="greeting"></small></div></div>
+    <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="grid">
+    <aside>
+      <div class="card">
+        <div class="ring-wrap">
+          <div class="ring">
+            <svg width="96" height="96" viewBox="0 0 96 96">
+              <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6c5ce7"/><stop offset="1" stop-color="#ff7ac8"/></linearGradient></defs>
+              <circle class="bg" cx="48" cy="48" r="40"/>
+              <circle class="fg" id="ringFg" cx="48" cy="48" r="40" stroke-dasharray="251.33" stroke-dashoffset="251.33"/>
+            </svg>
+            <b id="pct">0%</b>
+          </div>
+          <div><h3 id="ringTitle">Your progress</h3><p id="ringSub">Add your first task!</p></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><b id="sPending">0</b><span>Pending</span></div>
+          <div class="stat ok"><b id="sDone">0</b><span>Completed</span></div>
+          <div class="stat warn"><b id="sToday">0</b><span>Due today</span></div>
+          <div class="stat bad"><b id="sOver">0</b><span>Overdue</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="side-title">Views</p>
+        <div class="nav" id="viewNav"></div>
+      </div>
+      <div class="card">
+        <p class="side-title">Categories</p>
+        <div class="nav" id="catNav"></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="card quick">
+        <div class="quick-row">
+          <input id="quick" maxlength="200" autocomplete="off" placeholder='Try: "Submit report tomorrow !high #work"'>
+          <button class="btn primary" id="quickAdd" style="height:48px">Add</button>
+          <button class="btn ghost" id="openModal" title="Add with details">⚙️ Details</button>
+        </div>
+        <div class="hint" id="hint">Smart add understands <b>!high</b> <b>!low</b>, <b>#category</b>, and dates like <b>today</b>, <b>tomorrow</b>, <b>friday</b>, <b>in 3 days</b>, <b>next week</b>.</div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search"><input id="search" placeholder="Search tasks…  (press / )"></div>
+        <select id="prio"><option value="">All priorities</option><option value="high">🔴 High</option><option value="medium">🟠 Medium</option><option value="low">🟢 Low</option></select>
+        <select id="sort">
+          <option value="smart">✨ Smart order</option><option value="due">Due date</option><option value="priority">Priority</option>
+          <option value="newest">Newest</option><option value="oldest">Oldest</option><option value="title">A → Z</option>
+        </select>
+      </div>
+
+      <div class="list" id="list"></div>
+      <div class="footer-row"><span id="count"></span><button class="link" id="clearDone" style="display:none">Clear completed</button></div>
+    </main>
+  </div>
+</div>
+
+<!-- add / edit modal -->
+<div class="overlay" id="overlay">
+  <form class="modal" id="form" autocomplete="off">
+    <h2 id="modalTitle">New task</h2>
+    <div class="field"><label>Title *</label><input id="fTitle" maxlength="200" required></div>
+    <div class="field"><label>Description</label><textarea id="fDesc" maxlength="2000" placeholder="Notes, links, details…"></textarea></div>
+    <div class="field"><label>Priority</label>
+      <div class="seg" id="fPrio"><button type="button" data-v="low">low</button><button type="button" data-v="medium" class="on">medium</button><button type="button" data-v="high">high</button></div>
+    </div>
+    <div class="two">
+      <div class="field"><label>Category</label><input id="fCat" list="catList" maxlength="40" placeholder="General"><datalist id="catList"></datalist></div>
+      <div class="field"><label>Due date</label><input id="fDue" type="date"></div>
+    </div>
+    <div class="err" id="fErr"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" id="cancel">Cancel</button>
+      <button type="submit" class="btn primary" id="save">Save task</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastBtn">Undo</button></div>
+
+<script>
+/* ---------- config ---------- */
+// Served by the C++ backend -> same origin. Opened as a plain file -> talk to localhost:8080.
+const API = location.protocol === 'file:' ? 'http://localhost:8080' : '';
+
+const $ = s => document.querySelector(s);
+const state = { tasks: [], stats: null, view: 'all', category: '', editing: null, modalPrio: 'medium' };
+
+/* ---------- helpers ---------- */
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayStr = () => ymd(new Date());
+const addDays = (n, base = new Date()) => { const d = new Date(base); d.setDate(d.getDate() + n); return d; };
+const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const daysBetween = (s) => Math.round((parseYmd(s) - parseYmd(todayStr())) / 864e5);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const debounce = (fn, ms = 250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+async function api(path, opts = {}) {
+  let res;
+  try {
+    res = await fetch(API + path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  } catch (e) {
+    banner('Cannot reach the server. Start it with ./todo_server and reload.');
+    throw e;
+  }
+  banner('');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
+function banner(msg) { const b = $('#banner'); b.textContent = msg; b.classList.toggle('show', !!msg); }
+
+/* ---------- smart quick-add parser ---------- */
+const DAYS = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+function parseQuick(input) {
+  let t = ' ' + input + ' ', priority = 'medium', category = '', due = '';
+  t = t.replace(/\s!(high|h|urgent)\b/i, () => (priority = 'high', ' '))
+       .replace(/\s!(medium|med|m)\b/i, () => (priority = 'medium', ' '))
+       .replace(/\s!(low|l)\b/i, () => (priority = 'low', ' '))
+       .replace(/\s#([\w-]+)/, (m, c) => (category = c[0].toUpperCase() + c.slice(1), ' '));
+  let m;
+  if ((m = t.match(/\s(\d{4}-\d{2}-\d{2})\b/))) { due = m[1]; t = t.replace(m[0], ' '); }
+  else if (/\s(today|tonight)\b/i.test(t)) { due = todayStr(); t = t.replace(/\s(today|tonight)\b/i, ' '); }
+  else if (/\s(tomorrow|tmrw|tmr)\b/i.test(t)) { due = ymd(addDays(1)); t = t.replace(/\s(tomorrow|tmrw|tmr)\b/i, ' '); }
+  else if ((m = t.match(/\sin (\d+) days?\b/i))) { due = ymd(addDays(+m[1])); t = t.replace(m[0], ' '); }
+  else if (/\snext week\b/i.test(t)) { due = ymd(addDays(7)); t = t.replace(/\snext week\b/i, ' '); }
+  else if ((m = t.match(/\s(?:on |next )?(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thu|friday|fri|saturday|sat|sunday|sun)\b/i))) {
+    const target = DAYS[m[1].slice(0, 3).toLowerCase()];
+    let diff = (target - new Date().getDay() + 7) % 7; if (diff === 0) diff = 7;
+    due = ymd(addDays(diff)); t = t.replace(m[0], ' ');
+  }
+  const title = t.replace(/\s+/g, ' ').trim();
+  return { title, priority, category, due_date: due };
+}
+function dueChip(d, done) {
+  if (!d) return '';
+  const diff = daysBetween(d);
+  let label, cls = 'date';
+  if (diff === 0) { label = 'Today'; cls = done ? 'date' : 'soon'; }
+  else if (diff === 1) label = 'Tomorrow';
+  else if (diff === -1) { label = 'Yesterday'; cls = done ? 'date' : 'late'; }
+  else if (diff < 0) { label = `Overdue ${-diff}d`; cls = done ? 'date' : 'late'; }
+  else if (diff < 7) label = parseYmd(d).toLocaleDateString(undefined, { weekday: 'long' });
+  else label = parseYmd(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: parseYmd(d).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+  return `<span class="chip ${cls}">📅 ${esc(label)}</span>`;
+}
+
+/* ---------- data ---------- */
+async function load() {
+  const p = new URLSearchParams({ sort: $('#sort').value });
+  if ($('#search').value.trim()) p.set('q', $('#search').value.trim());
+  if ($('#prio').value) p.set('priority', $('#prio').value);
+  if (state.category) p.set('category', state.category);
+  if (state.view !== 'all') p.set('status', state.view);
+  try {
+    const [tasks, stats] = await Promise.all([api('/api/tasks?' + p), api('/api/stats')]);
+    state.tasks = tasks; state.stats = stats;
+    render();
+  } catch (e) { if (!$('#banner').classList.contains('show')) banner(e.message); }
+}
+
+/* ---------- rendering ---------- */
+function render() {
+  renderStats(); renderNav(); renderList();
+}
+function renderStats() {
+  const s = state.stats, pct = s.total ? Math.round(s.completed / s.total * 100) : 0;
+  $('#sPending').textContent = s.pending; $('#sDone').textContent = s.completed;
+  $('#sToday').textContent = s.due_today; $('#sOver').textContent = s.overdue;
+  $('#pct').textContent = pct + '%';
+  $('#ringFg').style.strokeDashoffset = 251.33 * (1 - pct / 100);
+  $('#ringTitle').textContent = !s.total ? 'Your progress' : pct === 100 ? 'All done! 🎉' : pct >= 50 ? 'Great momentum' : 'Keep going';
+  $('#ringSub').textContent = !s.total ? 'Add your first task!' :
+    s.overdue ? `${s.overdue} overdue — tackle those first.` :
+    s.due_today ? `${s.due_today} due today.` : `${s.pending} left, you've got this.`;
+  $('#clearDone').style.display = s.completed ? '' : 'none';
+}
+function renderNav() {
+  const s = state.stats;
+  const views = [['all', '📋 All tasks', s.total], ['active', '⏳ Active', s.pending], ['today', '☀️ Due today', s.due_today],
+                 ['overdue', '🔥 Overdue', s.overdue], ['completed', '✅ Completed', s.completed]];
+  $('#viewNav').innerHTML = views.map(([k, l, n]) =>
+    `<button data-view="${k}" class="${state.view === k ? 'active' : ''}"><span>${l}</span><span class="n">${n}</span></button>`).join('');
+  const cats = s.categories;
+  $('#catNav').innerHTML = (cats.length ? `<button data-cat="" class="${!state.category ? 'active' : ''}"><span>🗂️ Every category</span></button>` : '<small style="color:var(--muted);padding:6px 12px">No categories yet</small>') +
+    cats.map(c => `<button data-cat="${esc(c.name)}" class="${state.category.toLowerCase() === c.name.toLowerCase() ? 'active' : ''}"><span>${esc(c.name)}</span><span class="n">${c.count - c.done}/${c.count}</span></button>`).join('');
+  $('#catList').innerHTML = cats.map(c => `<option value="${esc(c.name)}">`).join('');
+}
+function renderList() {
+  const L = $('#list');
+  if (!state.tasks.length) {
+    const filtered = state.view !== 'all' || state.category || $('#search').value || $('#prio').value;
+    L.innerHTML = `<div class="empty"><div class="big">${filtered ? '🔎' : '🌱'}</div><b>${filtered ? 'Nothing matches' : 'A fresh start'}</b><p>${filtered ? 'Try changing your filters or search.' : 'Add a task above to get going.'}</p></div>`;
+  } else {
+    L.innerHTML = state.tasks.map((t, i) => `
+      <div class="task p-${t.priority} ${t.completed ? 'done' : ''}" data-id="${t.id}" style="animation-delay:${Math.min(i, 10) * 30}ms">
+        <button class="check" data-act="toggle" aria-label="Toggle complete">✓</button>
+        <div class="body">
+          <div class="title">${esc(t.title)}</div>
+          ${t.description ? `<div class="desc">${esc(t.description)}</div>` : ''}
+          <div class="meta">
+            <span class="chip ${t.priority}">${{ high: '🔴', medium: '🟠', low: '🟢' }[t.priority]} ${t.priority}</span>
+            <span class="chip cat">${esc(t.category)}</span>${dueChip(t.due_date, t.completed)}
+          </div>
+        </div>
+        <div class="actions">
+          <button data-act="edit" title="Edit">✏️</button><button data-act="delete" title="Delete">🗑️</button>
+        </div>
+      </div>`).join('');
+  }
+  $('#count').textContent = `${state.tasks.length} task${state.tasks.length === 1 ? '' : 's'} shown`;
+}
+
+/* ---------- actions ---------- */
+async function createTask(payload) {
+  const t = await api('/api/tasks', { method: 'POST', body: JSON.stringify(payload) });
+  await load(); return t;
+}
+async function toggle(id) { await api(`/api/tasks/${id}/toggle`, { method: 'PATCH' }); await load(); }
+async function remove(id) {
+  const t = state.tasks.find(x => x.id === id);
+  await api('/api/tasks/' + id, { method: 'DELETE' }); await load();
+  toast(`Deleted “${t.title.slice(0, 30)}”`, async () => {
+    await createTask({ title: t.title, description: t.description, priority: t.priority, category: t.category, due_date: t.due_date, completed: t.completed });
+  });
+}
+
+$('#list').addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]'); if (!btn) return;
+  const id = +btn.closest('.task').dataset.id, act = btn.dataset.act;
+  if (act === 'toggle') toggle(id).catch(err => toast(err.message));
+  if (act === 'delete') remove(id).catch(err => toast(err.message));
+  if (act === 'edit') openModal(state.tasks.find(t => t.id === id));
+});
+$('#viewNav').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (b) { state.view = b.dataset.view; load(); } });
+$('#catNav').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) { state.category = b.dataset.cat; load(); } });
+['#prio', '#sort'].forEach(s => $(s).addEventListener('change', load));
+$('#search').addEventListener('input', debounce(load));
+$('#clearDone').addEventListener('click', async () => {
+  if (!confirm('Delete all completed tasks?')) return;
+  await api('/api/tasks?completed=true', { method: 'DELETE' }); load();
+});
+
+/* quick add */
+function quickPreview() {
+  const v = $('#quick').value.trim();
+  if (!v) { $('#hint').innerHTML = 'Smart add understands <b>!high</b> <b>!low</b>, <b>#category</b>, and dates like <b>today</b>, <b>tomorrow</b>, <b>friday</b>, <b>in 3 days</b>, <b>next week</b>.'; return; }
+  const p = parseQuick(v);
+  $('#hint').innerHTML = `<span>Will add:</span> <b>${esc(p.title || '…')}</b> <span class="chip ${p.priority}">${p.priority}</span>` +
+    (p.category ? `<span class="chip cat">${esc(p.category)}</span>` : '') + (p.due_date ? dueChip(p.due_date) : '');
+}
+$('#quick').addEventListener('input', quickPreview);
+async function quickAdd() {
+  const p = parseQuick($('#quick').value);
+  if (!p.title) return;
+  try { await createTask(p); $('#quick').value = ''; quickPreview(); } catch (e) { toast(e.message); }
+}
+$('#quickAdd').addEventListener('click', quickAdd);
+$('#quick').addEventListener('keydown', e => { if (e.key === 'Enter') quickAdd(); });
+
+/* modal */
+function setModalPrio(v) { state.modalPrio = v; document.querySelectorAll('#fPrio button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+$('#fPrio').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setModalPrio(b.dataset.v); });
+function openModal(task = null) {
+  state.editing = task;
+  $('#modalTitle').textContent = task ? 'Edit task' : 'New task';
+  $('#fTitle').value = task ? task.title : $('#quick').value.trim() ? parseQuick($('#quick').value).title : '';
+  $('#fDesc').value = task ? task.description : '';
+  $('#fCat').value = task ? task.category : '';
+  $('#fDue').value = task ? task.due_date : '';
+  setModalPrio(task ? task.priority : 'medium');
+  $('#fErr').textContent = '';
+  $('#overlay').classList.add('show'); setTimeout(() => $('#fTitle').focus(), 50);
+}
+const closeModal = () => $('#overlay').classList.remove('show');
+$('#openModal').addEventListener('click', () => openModal());
+$('#cancel').addEventListener('click', closeModal);
+$('#overlay').addEventListener('mousedown', e => { if (e.target.id === 'overlay') closeModal(); });
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const payload = { title: $('#fTitle').value, description: $('#fDesc').value, priority: state.modalPrio, category: $('#fCat').value, due_date: $('#fDue').value };
+  try {
+    if (state.editing) { await api('/api/tasks/' + state.editing.id, { method: 'PUT', body: JSON.stringify(payload) }); await load(); }
+    else { await createTask(payload); $('#quick').value = ''; quickPreview(); }
+    closeModal();
+  } catch (err) { $('#fErr').textContent = err.message; }
+});
+
+/* toast */
+let toastTimer, toastAction;
+function toast(msg, undo) {
+  $('#toastMsg').textContent = msg; toastAction = undo;
+  $('#toastBtn').style.display = undo ? '' : 'none';
+  $('#toast').classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 5000);
+}
+$('#toastBtn').addEventListener('click', async () => { $('#toast').classList.remove('show'); if (toastAction) await toastAction(); });
+
+/* theme + shortcuts + greeting */
+function setTheme(t) { document.documentElement.dataset.theme = t; $('#themeBtn').textContent = t === 'dark' ? '☀️' : '🌙'; try { localStorage.setItem('theme', t); } catch (e) {} }
+$('#themeBtn').addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $('#search').focus(); }
+});
+(function init() {
+  let saved = null; try { saved = localStorage.getItem('theme'); } catch (e) {}
+  setTheme(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  const h = new Date().getHours();
+  $('#greeting').textContent = `${h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'} · ${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}`;
+  load();
+})();
+</script>
+</body>
+</html>
